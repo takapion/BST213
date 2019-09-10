@@ -1,0 +1,322 @@
+---
+title: "BST213_1"
+author: "Keiko Kunitoki"
+date: "9/9/2019"
+output: html_document
+---
+# homework 1
+
+## dichotomous variables
+check data distribution, unexpected relationship, error, outlier
+
+```{r}
+library(readxl)
+lbw <- read_excel("C:/Users/keiko/Dropbox/2019/fall/BST213/lbw.xlsx")
+View(lbw)
+```
+
+
+1.Histogram
+```{r}
+hist(lbw$bwt)
+```
+
+2.categolize
+```{r}
+sm0=lbw[lbw$smoke=="0",]
+sm1=lbw[lbw$smoke=="1",]
+
+ht0=lbw[lbw$ht=="0",]
+ht1=lbw[lbw$ht=="1",]
+
+ui0=lbw[lbw$ui=="0",]
+ui1=lbw[lbw$ui=="1",]
+```
+
+3.plot
+```{r}
+boxplot(sm0$bwt,sm1$bwt)
+```
+
+```{r}
+boxplot(ht0$bwt,ht1$bwt)
+```
+
+```{r}
+boxplot(ui0$bwt,ui1$bwt)
+```
+
+4.
+##### 1.test of normality
+see distribution with histogram
+```{r}
+hist(sm0$bwt)
+```
+
+```{r}
+hist(sm1$bwt)
+```
+
+plus, check skewness and kurtosis(sharpness)
+
+Skewness=0: perfectly symmetry
+
+Kurtosis=1: logistic distribution
+
+        =0: normal distribution
+        
+        =-1.2: uniform distribution |__| (up side down...)
+        
+        (larger is more sharp)
+
+
+you may need to _install.packages(moments)_
+```{r}
+library(moments)
+
+skewness(sm0$bwt)
+kurtosis(sm0$bwt)
+
+skewness(sm1$bwt)
+kurtosis(sm1$bwt)
+```
+
+
+##### 2. non-parametric
+```{r}
+wilcox.test(bwt ~ smoke , data=lbw) 
+wilcox.test(bwt ~ ht , data=lbw)
+wilcox.test(bwt ~ ui , data=lbw)
+```
+
+
+4.2. parametric test
+
+##### 1.test for equal variance
+```{r}
+var.test(bwt ~ smoke, data=lbw, 
+         alternative = "two.sided")
+
+var.test(bwt ~ ht, data=lbw, 
+         alternative = "two.sided")
+
+var.test(bwt ~ ui, data=lbw, 
+         alternative = "two.sided")
+```
+##### 2. a equal variance (t-test)
+```{r}
+t.test(lbw$bwt~lbw$smoke, alternative="two.sided",conf.level = .95, var.equal = TRUE)
+t.test(lbw$bwt~lbw$ht, alternative="two.sided",conf.level = .95, var.equal = TRUE)
+t.test(lbw$bwt~lbw$ui, alternative="two.sided",conf.level = .95, var.equal = TRUE)
+```
+
+##### 2. b Welch's test
+Assuming non-equal variance, we conduct Weich's test.
+
+This condition is **default** for t-test in R.
+
+Or you may do the same with _var.equal = TRUE_
+```{r}
+t.test(lbw$bwt~lbw$smoke)
+t.test(lbw$bwt~lbw$ht)
+t.test(lbw$bwt~lbw$ui)
+```
+
+
+
+## categorical variables
+We should determine how to deal with 2 or more categories. 
+check the number of data in each category.
+
+We can obtain enough "n" for each group by dichotomizing,
+or see tendency by keeping 3 or more categories.
+
+### 1. categorize / collapse
+There are several means to modify and create new categories.
+
+a. use _plyr_
+you may need to download _install.packages(plyr)_
+
+* define each number
+```{r}
+library(plyr)
+#ptl to di
+lbw$ptl_di[lbw$ptl=="0"] <- "0"
+lbw$ptl_di[lbw$ptl=="1"] <- "1"
+lbw$ptl_di[lbw$ptl=="2"] <- "1"
+lbw$ptl_di[lbw$ptl=="3"] <- "1"
+```
+we can change the variables numerical to alphabetical in the same way.
+
+   data?scode[data?sex=="M"] <- "1"
+
+   data?scode[data?sex=="F"] <- "2"
+
+           _(replace ? to $)_
+
+
+or devide data by a certain threshold
+
+   data?category[data?control< 7] <- "low"
+
+   data?category[data?control>=7] <- "high"
+
+          _(replace ? to $)_
+
+          
+* make a threshold
+```{r}
+lbw$ftv_tri<-cut(lbw$ftv,
+                  breaks=c(-Inf,0.5, 1.5, Inf),
+                  labels=c("0","1","2"))
+```
+
+ cf. we can also calculate columns as such
+
+   data?total <- data?control + data?cond1 + data?cond2
+   
+           _(replace ? to $)_
+
+b.use transform + if 
+```{r}
+transform(lbw, ptl_yes_no=0)
+lbw$ptl_yes_no<-ifelse(lbw$ptl==0,0,1)
+```
+
+### 2. Convert a column into a factor column
+R cannot recognize categories of column even if it is specified by SAS dataset or something.
+
+If we run ANOVA without specifying the column (0,1,2...), R treat this variable as a numerical column ind ignore group"0".
+
+We can change column's categories as such.
+```{r}
+lbw$ptl_di<-as.factor(lbw$ptl_di)
+lbw$ftv_tri<-as.factor(lbw$ftv_tri)
+```
+
+### 3. test for normality
+
+### 4.a. ANOVA
+if data are normaly distributed, we can conduct ANOVA.
+
+ANOVA is comparing mean values of 3 or more categories.
+
+  H0: mu1=mu2=mu3=....
+
+  Ha: at least one of the means is different
+
+```{r}
+summary(aov(lbw$bwt~lbw$race))
+summary(aov(lbw$bwt~lbw$ptl_di))
+summary(aov(lbw$bwt~lbw$ftv_tri))
+```
+
+### 4.b. Kruskal-Wallis
+If data are not normaly distributed, we do Kraskal-Wallis test.
+
+K-W is comparing sum rank of 3 or more categories.
+
+```{r}
+kruskal.test(lbw$bwt~lbw$race)
+kruskal.test(lbw$bwt~lbw$ptl_di)
+kruskal.test(lbw$bwt~lbw$ftv_tri)
+```
+
+## continuous variables
+
+### 1. test for normality
+### *histogram
+```{r}
+hist(lbw$age)
+```
+
+```{r}
+hist(lbw$lwt)
+```
+
+#### *QQ-plot
+you may need _install.packages(ggpubr)_
+
+The ‘ggpubr’ package provides some easy-to-use functions for creating and customizing ‘ggplot2’- based publication ready plots.
+```{r}
+library(ggpubr)
+ggqqplot(lbw$age)
+```
+
+```{r}
+library(ggpubr)
+ggqqplot(lbw$lwt)
+```
+
+### *Density plot
+
+```{r}
+library("ggpubr")
+ggdensity(lbw$age)
+```
+
+#### *Shapiro-Wilk’s method 
+S-W is widely recommended for normality test and it provides better power than Kolmogorov-Smirnov (K-S) normality test.
+```{r}
+shapiro.test(lbw$age)
+shapiro.test(lbw$lwt)
+```
+
+### 2.a. correlation test (Pearson)
+Assuming normal distribution, we use pearson's correlation test.
+
+This method is default for cor.test in R.
+```{r}
+cor.test(lbw$bwt,lbw$age)
+cor.test(lbw$bwt,lbw$lwt)
+```
+or you may add _, pearson_ at last
+
+### 2.b. correlation test (Spearman)
+Assuming normal distribution, we use pearson's correlation test.
+```{r}
+cor.test(lbw$bwt,lbw$age, method="spearman")
+cor.test(lbw$bwt,lbw$lwt, method="spearman")
+```
+
+## General notification
+#### 1. Choice of Statistical Method
+We can chose both
+
+* to use same statistical method (parametric/non-parametric) weighing consistency 
+
+* to use different method for each weighing statistical propriety.
+
+#### 2. Choice of Confounder
+see coefficients, difference in mean/median (not p-value)
+
+If there are large value in coefficients or mean/median and p>0.05, we cannot say it’s significant but we can say the study may underpowered.
+
+In negative result, the best possible data to show is confidence interval(CI).
+
+-> Post-hoc interpretation, see not only p but coefficient and CI and detect the potential result
+
+
+univariate: not significant
+
+regression: significant      can happen
+
+We also need explanation
+-confounding (part of HT effect may come from smoke)
+
+-data size
+
+  standard error(se)
+  t=betaHT-0 / se(betaHT)   
+  
+  ->make power up and make se smaller!
+
+#### 3. Unexpected result
+Is the result Hypothesis driven? / Hypothesis generating?
+
+Readers may need possible explanation for that. 
+
+
+Error: fix, remove
+
+Outlier: to aware, test removal
