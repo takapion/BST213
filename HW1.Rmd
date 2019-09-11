@@ -194,6 +194,12 @@ lbw$ptl_di<-as.factor(lbw$ptl_di)
 lbw$ftv_tri<-as.factor(lbw$ftv_tri)
 ```
 
+and check the type of object, we can use this
+```{r}
+class(lbw$ptl_di)
+```
+
+
 ### 3. test for normality
 
 ### 4.a. ANOVA
