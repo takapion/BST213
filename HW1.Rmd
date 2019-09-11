@@ -6,6 +6,14 @@ output: html_document
 ---
 # homework 1
 
+### 0. basic statistics
+you may install.packages(psych)
+```{r}
+lilibrary(psych)
+describe(lbw$age)
+
+
+
 ## dichotomous variables
 check data distribution, unexpected relationship, error, outlier
 
